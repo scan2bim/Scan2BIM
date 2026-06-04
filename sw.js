@@ -1,25 +1,31 @@
-// sw.js — Service Worker Scan2BIM v4 (minimal - sans cache)
-const CACHE_NAME = 'scan2bim-v4';
+// sw.js — Service Worker Scan2BIM FINAL
+// Stratégie : minimal — ne bloque RIEN, supprime tous les anciens caches
 
-// Installation simple — pas de mise en cache des assets
+const CACHE_NAME = 'scan2bim-v5';
+
 self.addEventListener('install', function(event) {
+  // Activation immédiate sans attendre
   self.skipWaiting();
 });
 
-// Activation — supprime tous les anciens caches
 self.addEventListener('activate', function(event) {
+  // Supprimer TOUS les anciens caches sans exception
   event.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-    }).then(function() {
-      return self.clients.claim();
-    })
+    caches.keys()
+      .then(function(keys) {
+        return Promise.all(keys.map(function(k) {
+          console.log('[SW] Suppression cache:', k);
+          return caches.delete(k);
+        }));
+      })
+      .then(function() {
+        return self.clients.claim();
+      })
   );
 });
 
-// Fetch — laisse TOUT passer sans interception
-// Aucune mise en cache, aucun blocage
-self.addEventListener('fetch', function(event) {
-  // On ne fait rien — le navigateur gère normalement
+// Aucune interception fetch — le navigateur gère tout normalement
+// Ceci évite tout blocage CORS ou erreur 503
+self.addEventListener('fetch', function() {
   return;
 });
