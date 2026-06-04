@@ -788,6 +788,33 @@
 (function () {
   'use strict';
 
+  // ── FONCTION DE REQUÊTE ROBUSTE (fonctionne en standalone Android) ──────
+  // Utilise XHR en fallback si fetch échoue (Origin: null bloqué par GAS)
+  function gasRequest(url, postData) {
+    return new Promise(function(resolve, reject) {
+      // Tentative 1 : fetch normal
+      var fetchOpts = postData 
+        ? { method: 'POST', mode: 'cors', headers: {'Content-Type':'text/plain'}, body: postData }
+        : { method: 'GET', mode: 'cors' };
+      
+      fetch(url, fetchOpts)
+        .then(function(res) { return res.json(); })
+        .then(resolve)
+        .catch(function() {
+          // Tentative 2 : XHR (pas de header Origin dans certains contextes)
+          var xhr = new XMLHttpRequest();
+          xhr.open(postData ? 'POST' : 'GET', url, true);
+          if (postData) xhr.setRequestHeader('Content-Type', 'text/plain');
+          xhr.onload = function() {
+            try { resolve(JSON.parse(xhr.responseText)); }
+            catch(e) { reject(new Error('Parse error: ' + xhr.responseText.substring(0,100))); }
+          };
+          xhr.onerror = function() { reject(new Error('XHR network error')); };
+          xhr.send(postData || null);
+        });
+    });
+  }
+
   // ── CONSTANTES ────────────────────────────────────────
   var KEY_PIECES  = 'bim_pieces';
   var KEY_QUEUE   = 'bim_queue';
@@ -1061,11 +1088,7 @@
   function refreshFromServer(silent) {
     if (!silent) showLoader(true);
     // FIX #6 : Fetch correct avec gestion des erreurs réseau
-    fetch(WEBHOOK_URL + '?action=getBIMData')
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+    gasRequest(WEBHOOK_URL + '?action=getBIMData', null)
       .then(function (pieces) {
         if (!pieces || !Array.isArray(pieces) || pieces.length === 0) {
           if (!silent) showError("Aucune donnée trouvée dans la feuille 'Data'.");
@@ -1532,8 +1555,7 @@
     var btns = document.querySelectorAll('.btn-sync');
     btns.forEach(function (b) { b.style.opacity = '0.5'; b.style.pointerEvents = 'none'; });
     var snap = queue.slice();
-    fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'sync', data: snap }) })
-      .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    gasRequest(WEBHOOK_URL, JSON.stringify({ action: 'sync', data: snap }))
       .then(function (r) {
         btns.forEach(function (b) { b.style.opacity = ''; b.style.pointerEvents = ''; });
         if (r && r.success) {
@@ -1597,7 +1619,7 @@
     if (code !== 'SUPPRIMER') { showToast('❌ Annulé'); return; }
     showLoader(true);
     ge('loader-screen').querySelector('.loader-sub').textContent = 'Suppression en cours...';
-    fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'deleteSpecificProjects', projects: deleteState.selectedProjects }) })
+    fetch(WEBHOOK_URL, { method: 'POST', mode: 'cors', redirect: 'follow', headers: {'Content-Type':'text/plain'}, body: JSON.stringify({ action: 'deleteSpecificProjects', projects: deleteState.selectedProjects }) })
       .then(function (res) { return res.json(); })
       .then(function () {
         allPieces = allPieces.filter(function (p) { return deleteState.selectedProjects.indexOf(p.nom_projet) < 0; });
