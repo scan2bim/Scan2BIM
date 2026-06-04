@@ -1,0 +1,28 @@
+{
+  "name": "Scan-to-BIM Field App",
+  "short_name": "Scan2BIM",
+  "description": "Application mobile de suivi de chantier BIM - Cegelec Vinci",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#2563eb",
+  "lang": "fr",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities", "business"],
+  "screenshots": []
+}
