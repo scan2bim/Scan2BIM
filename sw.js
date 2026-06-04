@@ -1,38 +1,39 @@
-// ============================================================
-// sw.js — Service Worker Scan2BIM
-// Stratégie : Cache-First pour les assets, Network-First pour l'API
-// ============================================================
+// sw.js — Service Worker Scan2BIM v2 (corrigé)
+const CACHE_NAME = 'scan2bim-v2';
 
-const CACHE_NAME = 'scan2bim-v1';
+// Seuls les assets LOCAUX sont mis en cache
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js'
+  './manifest.json'
 ];
 
-// ── Installation : mise en cache des assets statiques ──────────────
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { cache: 'reload' })))
-        .catch(function(err) {
-          console.warn('[SW] Certains assets non mis en cache :', err);
-        });
+      // FIX : on filtre strictement les URLs locales uniquement
+      var safeAssets = STATIC_ASSETS.filter(function(url) {
+        return url.startsWith('./') || url.startsWith('/');
+      });
+      return Promise.all(
+        safeAssets.map(function(url) {
+          return cache.add(url).catch(function(err) {
+            console.warn('[SW] Asset non mis en cache :', url, err);
+          });
+        })
+      );
     }).then(function() {
       return self.skipWaiting();
     })
   );
 });
 
-// ── Activation : suppression des anciens caches ─────────────────────
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        keys.filter(function(k) { return k !== CACHE_NAME; })
+            .map(function(k) { return caches.delete(k); })
       );
     }).then(function() {
       return self.clients.claim();
@@ -40,29 +41,32 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-// ── Fetch : stratégie hybride ───────────────────────────────────────
 self.addEventListener('fetch', function(event) {
   var url = event.request.url;
 
-  // Requêtes API Google Apps Script → Network-First (pas de cache)
-  if (url.includes('script.google.com')) {
+  // FIX PRINCIPAL : ignorer tout ce qui n'est pas http/https
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return; // laisser passer sans intercepter
+  }
+
+  // Ne jamais mettre en cache les appels Google Apps Script
+  if (url.includes('script.google.com') || url.includes('googleapis.com')) {
     event.respondWith(
       fetch(event.request).catch(function() {
         return new Response(
-          JSON.stringify({ error: 'Hors-ligne : impossible de contacter le serveur.' }),
-          { headers: { 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Hors-ligne' }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
         );
       })
     );
     return;
   }
 
-  // Assets statiques → Cache-First avec fallback réseau
+  // Assets locaux : Cache-First
   event.respondWith(
     caches.match(event.request).then(function(cached) {
       if (cached) return cached;
       return fetch(event.request).then(function(response) {
-        // On ne cache que les réponses valides
         if (!response || response.status !== 200 || response.type === 'opaque') {
           return response;
         }
@@ -72,11 +76,10 @@ self.addEventListener('fetch', function(event) {
         });
         return response;
       }).catch(function() {
-        // Fallback : retourner l'index.html si la ressource est introuvable hors-ligne
         if (event.request.mode === 'navigate') {
           return caches.match('./index.html');
         }
-        return new Response('Ressource non disponible hors-ligne.', { status: 503 });
+        return new Response('Non disponible hors-ligne.', { status: 503 });
       });
     })
   );
