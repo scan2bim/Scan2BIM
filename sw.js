@@ -1,5 +1,5 @@
 // sw.js — Service Worker Scan2BIM v2 (corrigé)
-const CACHE_NAME = 'scan2bim-v2';
+const CACHE_NAME = 'scan2bim-v3';
 
 // Seuls les assets LOCAUX sont mis en cache
 const STATIC_ASSETS = [
