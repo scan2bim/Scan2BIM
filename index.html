@@ -1061,7 +1061,7 @@
   function refreshFromServer(silent) {
     if (!silent) showLoader(true);
     // FIX #6 : Fetch correct avec gestion des erreurs réseau
-    fetch(WEBHOOK_URL + '?action=getBIMData', { method: 'GET' })
+    fetch('https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL + '?action=getBIMData'))
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
@@ -1532,7 +1532,7 @@
     var btns = document.querySelectorAll('.btn-sync');
     btns.forEach(function (b) { b.style.opacity = '0.5'; b.style.pointerEvents = 'none'; });
     var snap = queue.slice();
-    fetch(WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: 'sync', data: snap }) })
+    fetch('https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'sync', data: snap }) })
       .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
       .then(function (r) {
         btns.forEach(function (b) { b.style.opacity = ''; b.style.pointerEvents = ''; });
@@ -1597,7 +1597,7 @@
     if (code !== 'SUPPRIMER') { showToast('❌ Annulé'); return; }
     showLoader(true);
     ge('loader-screen').querySelector('.loader-sub').textContent = 'Suppression en cours...';
-    fetch(WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteSpecificProjects', projects: deleteState.selectedProjects }) })
+    fetch('https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'deleteSpecificProjects', projects: deleteState.selectedProjects }) })
       .then(function (res) { return res.json(); })
       .then(function () {
         allPieces = allPieces.filter(function (p) { return deleteState.selectedProjects.indexOf(p.nom_projet) < 0; });
