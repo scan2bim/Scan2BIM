@@ -796,7 +796,7 @@
   var KEY_KPI     = 'bim_kpi_jour';
 
   // FIX #1 : URL correcte (pas de paramètre dans l'URL de base)
-  var WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyklY69b7XFtRiGgnnJHkpRbZJZFquNADW6hyfrcU4ZevArUku3Jma0K8mVAoPXT-Ho/exec';
+  var WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw1p083wmiKkbLdje39hScXjJu6TAIOzBhQ56PuZjYB5ncndeUz9DAbGqc-rqXMFl2t/exec';
 
   // FIX #2 : Credentials stockés côté client (pas modifiables sans rechargement)
   var USERS = {
@@ -1061,7 +1061,7 @@
   function refreshFromServer(silent) {
     if (!silent) showLoader(true);
     // FIX #6 : Fetch correct avec gestion des erreurs réseau
-    fetch('https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL + '?action=getBIMData'))
+    fetch(WEBHOOK_URL + '?action=getBIMData')
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
@@ -1532,7 +1532,7 @@
     var btns = document.querySelectorAll('.btn-sync');
     btns.forEach(function (b) { b.style.opacity = '0.5'; b.style.pointerEvents = 'none'; });
     var snap = queue.slice();
-    fetch('https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'sync', data: snap }) })
+    fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'sync', data: snap }) })
       .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
       .then(function (r) {
         btns.forEach(function (b) { b.style.opacity = ''; b.style.pointerEvents = ''; });
@@ -1597,7 +1597,7 @@
     if (code !== 'SUPPRIMER') { showToast('❌ Annulé'); return; }
     showLoader(true);
     ge('loader-screen').querySelector('.loader-sub').textContent = 'Suppression en cours...';
-    fetch('https://corsproxy.io/?' + encodeURIComponent(WEBHOOK_URL), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'deleteSpecificProjects', projects: deleteState.selectedProjects }) })
+    fetch(WEBHOOK_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'deleteSpecificProjects', projects: deleteState.selectedProjects }) })
       .then(function (res) { return res.json(); })
       .then(function () {
         allPieces = allPieces.filter(function (p) { return deleteState.selectedProjects.indexOf(p.nom_projet) < 0; });
